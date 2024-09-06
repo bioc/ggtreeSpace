@@ -37,6 +37,7 @@ geom_treespace <- function(tr, data, mapping = NULL, ...) {
 
 #' @importFrom ggtree geom_tree
 make_ts_layer <- function(tr, data, mapping, ...) {
+  
     trd <- make_ts_data(tr, data)
     layer <- geom_tree(
         data = trd,
@@ -45,8 +46,8 @@ make_ts_layer <- function(tr, data, mapping, ...) {
         ...
     )
     return(layer)
-}
 
+}
 
 
 #' @title Make plot data for ggtreespace.
@@ -89,13 +90,13 @@ make_ts_data <- function(tr, data) {
         stop("Trait data is required.")
     }
 
-    if (!is.data.frame(data) && !is.matrix(data)) {
-        stop("The input trait data must be a data frame or matrix.")
-    }
-
     nr <- nrow(data)
     if (nr == 0) {
         stop("The input trait data must be a non-empty data frame.")
+    }
+    
+    if (nr == 1) {
+      stop("More than one trait is needed.")
     }
 
     if (ncol(data) > 2) {
@@ -124,14 +125,78 @@ make_ts_data <- function(tr, data) {
     return(tsd)
 }
 
+
+
 make_tsd <- function(trd, coorddata) {
     trdm <- trd |>
-                select(-all_of(c("x", "y"))) |>
-                mutate(
-                    x = coorddata[, 1],
-                    y = coorddata[, 2]
-                    ) |>
-                recal_bl()
-    
+      select(-all_of(c("x", "y"))) |>
+      mutate(
+        x = if (is.matrix(coorddata)) coorddata[, 1] else coorddata[[1]],
+        y = if (is.matrix(coorddata)) coorddata[, 2] else coorddata[[2]]
+      ) |>
+      recal_bl()
     return(trdm)
+}
+
+
+
+
+#' @title Make plot data for ggtreespace.
+#' This function processes a phylogenetic tree and associated trait data to
+#' create a data frame suitable for plotting with `ggtreespace`.
+#'
+#' @param data Input data of check.graph.layout
+#' @param t Input traits
+
+#'
+#' @return trait data.frame
+#' @importFrom ggtree fortify
+#' @importFrom phytools fastAnc
+#' @importFrom ape as.phylo
+#' @importFrom ape Ntip
+#' @importFrom ape Nnode
+#'
+#'
+#' @examples
+#' library(ggplot2)
+#' library(ggtree)
+#' library(phytools)
+#'
+#' tr <- rtree(10)
+#' a <- fastBM(tr, nsim = 2)
+#'
+#' trd <- make_ts_data(tr, a)
+intern_call <- function(data, t){
+  n1 <- t[1]
+  n2 <- t[2]
+  
+  trait1 <- data[[n1]]
+  trait2 <- data[[n2]]
+  
+  if (length(trait1) != length(trait2)) {
+    stop("The selected traits must have the same length.")
+  }
+  
+  nt <- Ntip(data)
+  nn <- Nnode(data, internal.only = FALSE)
+  
+  if (length(trait1) != nt && length(trait1) != nn) {
+    stop("The selected trait must have a length equal to the number of tips or 
+         nodes.")
+  }
+  
+  traits <- data.frame(x = trait1,
+                       y = trait2)
+  rownames(traits) <- NULL
+  
+  if (length(trait1) == nt) {
+    anc <- apply(traits, 2, fastAnc, tree = as.phylo(data))
+    traits <- rbind(dat, anc)
+    
+    return(traits)
+  }
+  
+  if (length(trait1) == nn) {
+    return(traits)
+  }
 }

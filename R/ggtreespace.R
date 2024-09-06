@@ -32,16 +32,23 @@
 #'
 #' @export
 ggtreespace <- function(tr, data, mapping = NULL, ...) {
+  
     if (is.null(data)) {
         stop("Traits data is required.")
     }
-
-    if (is.null(colnames(data)) || length(colnames(data)) == 0) {
-        c <- c("x", "y")
-    } else {
-        c <- colnames(data)
+  
+    if (!is.data.frame(data) && !is.matrix(data) && !is.vector(data)) {
+      stop("The input trait data must be a data frame, matrix, or vector 
+           cotaining trait names.")
     }
-
+  
+    if (is.data.frame(data) || is.matrix(data)) {
+      if (is.null(colnames(data)) || length(colnames(data)) == 0) {
+        c <- c("x", "y")
+      } else {
+        c <- colnames(data)
+      }
+    
     trd <- make_ts_data(tr, data)
 
     p <- ggtree(trd,
@@ -60,4 +67,37 @@ ggtreespace <- function(tr, data, mapping = NULL, ...) {
     class(p) <- c("ggtreeSpace", class(p))
 
     return(p)
+    } 
+  
+    if (is.vector(data)){
+      
+      if (!inherits(tr, "treedata")){
+        stop("Only treedata object supports internal calling.")
+      }
+      
+      if (length(data) == 1){
+        stop("More than one traits is needed.")
+      }
+      
+      if (length(data) > 2) {
+        warning("Only the first 2 trait data names will be used.")
+      }
+      
+      
+      p <- ggtree(tr, mapping = mapping, layout = intern_call, 
+                  layout.params = list(t = data, as.graph = FALSE)) +
+              theme_treespace() +
+              labs(
+                  x = data[1],
+                  y = data[2]
+                  )
+      
+      suppressMessages(p <- p + coord_cartesian())
+      
+      class(p) <- c("ggtreeSpace", class(p))
+      
+      return(p)
+    } 
 }
+
+
