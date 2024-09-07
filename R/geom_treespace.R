@@ -3,7 +3,7 @@
 #' @param tr a tree object. This should be an object of class that is
 #'           compatible with `ggtree`, typically an object of class
 #'           `phylo` or `treedata`.
-#' @param data Trait data as a data frame or matrix, where each row
+#' @param trait Trait data as a data frame or matrix, where each row
 #' represents a tree tip or node.
 #'
 #'     For data matching the number of tips, ancestral traits are reconstructed
@@ -28,26 +28,26 @@
 #'
 #' p <- ggplot() +
 #'     geom_treespace(tr, a)
-geom_treespace <- function(tr, data, mapping = NULL, ...) {
-    structure(list(tr = tr, data = data, mapping = mapping, ...),
+geom_treespace <- function(tr, trait, mapping = NULL, ...) {
+    structure(list(tr = tr, trait = trait, mapping = mapping, ...),
         class = "treespace"
     )
 }
 
 
 #' @importFrom ggtree geom_tree
-make_ts_layer <- function(tr, data, mapping, ...) {
+make_ts_layer <- function(tr, trait, mapping, ...) {
   
-    trd <- make_ts_data(tr, data)
+    trd <- make_ts_data(tr, trait)
     layer <- geom_tree(
-        data = trd,
-        mapping = mapping,
-        layout = "equal_angle",
-        ...
+      data = trd,
+      mapping = mapping,
+      layout = "equal_angle",
+      ...
     )
     return(layer)
-
-}
+  }
+  
 
 
 #' @title Make plot data for ggtreespace.
@@ -85,12 +85,38 @@ make_ts_layer <- function(tr, data, mapping, ...) {
 #' a <- fastBM(tr, nsim = 2)
 #'
 #' trd <- make_ts_data(tr, a)
-make_ts_data <- function(tr, data) {
-    if (is.null(data)) {
+make_ts_data <- function(tr, trait) {
+    if (is.null(trait)) {
         stop("Trait data is required.")
     }
+  
+    trd <- fortify(tr)
+    
+    if (is.vector(trait)){
+    
+      if (!inherits(tr, "treedata")){
+        stop("Only treedata object supports internal calling.")
+      }
+    
+      if (length(trait) == 1){
+        stop("More than one traits is needed.")
+      }
+    
+      if (length(trait) > 2) {
+        warning("Only the first 2 trait data names will be used.")
+      }
+    
+    
+      if (!all(trait %in% colnames(trd))){
+        stop("Traits must be in the tree.data object.")
+      }
+    
+      trait <- select(trd, trait)
+    }
+  
 
-    nr <- nrow(data)
+      nr <- nrow(trait)
+      
     if (nr == 0) {
         stop("The input trait data must be a non-empty data frame.")
     }
@@ -99,16 +125,16 @@ make_ts_data <- function(tr, data) {
       stop("More than one trait is needed.")
     }
 
-    if (ncol(data) > 2) {
+    if (ncol(trait) > 2) {
         warning("Only the first 2 column of the trait data will be used.")
     }
 
-    trd <- fortify(tr)
-    # dat <- cbind(data[, 1], data[, 2])
-    dat <- data[, c(1, 2)]
 
-    nt <- Ntip(tr)
-    nn <- Nnode(tr, internal.only = FALSE)
+    # dat <- cbind(data[, 1], data[, 2])
+    dat <- trait[, c(1, 2)]
+
+    nt <- Ntip(as.phylo(tr))
+    nn <- Nnode(as.phylo(tr), internal.only = FALSE)
 
     if (nr != nt && nr != nn) {
         stop("The input trait data must be as long as the number of
