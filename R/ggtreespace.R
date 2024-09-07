@@ -5,7 +5,7 @@
 #' @param tr a tree object. This should be an object of class that is
 #'           compatible with `ggtree`, typically an object of class
 #'           `phylo` or `treedata`.
-#' @param data Trait data as a data frame or matrix, where each row
+#' @param trait Trait data as a data frame or matrix, where each row
 #' represents a tree tip or node.
 #'
 #'     For data matching the number of tips, ancestral traits are reconstructed
@@ -31,25 +31,25 @@
 #'     geom_tippoint()
 #'
 #' @export
-ggtreespace <- function(tr, data, mapping = NULL, ...) {
+ggtreespace <- function(tr, trait, mapping = NULL, ...) {
   
-    if (is.null(data)) {
+    if (is.null(trait)) {
         stop("Traits data is required.")
     }
   
-    if (!is.data.frame(data) && !is.matrix(data) && !is.vector(data)) {
+    if (!is.data.frame(trait) && !is.matrix(trait) && !is.vector(trait)) {
       stop("The input trait data must be a data frame, matrix, or vector 
            cotaining trait names.")
     }
   
-    if (is.data.frame(data) || is.matrix(data)) {
-      if (is.null(colnames(data)) || length(colnames(data)) == 0) {
+    if (is.data.frame(trait) || is.matrix(trait)) {
+      if (is.null(colnames(trait)) || length(colnames(trait)) == 0) {
         c <- c("x", "y")
       } else {
-        c <- colnames(data)
+        c <- colnames(trait)
       }
     
-    trd <- make_ts_data(tr, data)
+    trd <- make_ts_data(tr, trait)
 
     p <- ggtree(trd,
         mapping = mapping,
@@ -69,27 +69,27 @@ ggtreespace <- function(tr, data, mapping = NULL, ...) {
     return(p)
     } 
   
-    if (is.vector(data)){
+    if (is.vector(trait)){
       
       if (!inherits(tr, "treedata")){
         stop("Only treedata object supports internal calling.")
       }
       
-      if (length(data) == 1){
+      if (length(trait) == 1){
         stop("More than one traits is needed.")
       }
       
-      if (length(data) > 2) {
+      if (length(trait) > 2) {
         warning("Only the first 2 trait data names will be used.")
       }
       
       
       p <- ggtree(tr, mapping = mapping, layout = intern_call, 
-                  layout.params = list(t = data, as.graph = FALSE)) +
+                  layout.params = list(t = trait, as.graph = FALSE)) +
               theme_treespace() +
               labs(
-                  x = data[1],
-                  y = data[2]
+                  x = trait[1],
+                  y = trait[2]
                   )
       
       suppressMessages(p <- p + coord_cartesian())
